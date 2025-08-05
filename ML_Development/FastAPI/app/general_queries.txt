@@ -1,0 +1,36 @@
+Hard SQL Database Queries : 
+
+1)
+
+This query is to print columns users.id, users.email and count of how many post each has done
+select users.id, users.email, COUNT(posts.owner_id) from users left join posts on users.id = posts.owner_id group by users.id;
+
+
+Miscellaneous:
+
+fetch('http://localhost:8000/').then(res => res.json()).then(console.log)
+
+.\environ\Scripts\activate
+
+
+Docker:
+
+docker-compose up -d
+
+docker-compose down
+
+To go into the linux file system : 
+docker exec -it <name of container> bash
+
+To go int the code file itself : 
+cat <filename>.py
+
+docker image tag fastapi-api ashutoshbhate/fastapi
+
+docker image ls
+
+To run the docker container when the compose file has a different name : 
+docker-compose -f docker-compose-dev.yml up -d
+
+To turn off : 
+docker-compose -f docker-compose-dev.yml down

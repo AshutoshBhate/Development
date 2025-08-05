@@ -1,0 +1,46 @@
+#We basically accessed the API that was running in a container. We did the GET request on port 8000 without using uvicorn and it still print Hello World
+
+version: '3'
+services:
+    api:
+        image: ashutoshbhate/fastapi
+        ports:
+#           - <port on localhost>:<port on container>
+            - 80:8000
+        
+        # command: uvicorn app.main_Routers:app --host 0.0.0.0 --port 8000
+        
+        environment:
+            DATABASE_PORT: ${DATABASE_PORT}
+            DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+            DATABASE_NAME: ${DATABASE_NAME}
+            DATABASE_USERNAME: ${DATABASE_USERNAME}
+            SECRET_KEY: ${SECRET_KEY}
+            ALGORITHM: ${ALGORITHM}
+            ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+        depends_on:
+            db:
+                condition: service_healthy 
+    
+    db: # This is the service name for your PostgreSQL database
+        image: postgres:13 # Use a specific, stable version of PostgreSQL
+        environment:
+            POSTGRES_DB: ${DATABASE_NAME}       # This database will be created inside the PostgreSQL container
+            POSTGRES_USER: ${DATABASE_USERNAME}     # The user for the database
+            POSTGRES_PASSWORD: ${DATABASE_PASSWORD}     # The password for the database user
+      # These environment variables are specific to the official PostgreSQL Docker image
+        volumes:
+            - db-data:/var/lib/postgresql/data # Persist database data across container restarts. This is the path in the container that postgres is going to write to
+
+    # Optional: Expose the DB port to your host if you want to connect with a GUI tool
+    # - "5432:5432" # Uncomment this if you need to access PostgreSQL from your host machine
+        healthcheck: # <-- ADD THIS HEALTHCHECK SECTION
+            test: ["CMD-SHELL", "pg_isready -U postgres"] # Command to check if PostgreSQL is ready
+            interval: 5s # Check every 5 seconds
+            timeout: 5s # Timeout after 5 seconds
+            retries: 5 # Try 5 times
+            start_period: 10s # Give the DB 10 seconds to start before checks begin
+
+volumes:
+  db-data: # Define the named volume for persistent database data
+

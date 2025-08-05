@@ -1,0 +1,6 @@
+For verbosity : 
+pytest -v
+
+To display the print statement : 
+
+pytest -v -s

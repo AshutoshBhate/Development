@@ -1,0 +1,22 @@
+# Main FastAPI application framework and server
+fastapi==0.115.7
+uvicorn[standard]==0.34.0
+
+# Database and ORM
+sqlalchemy==2.0.41
+psycopg2-binary==2.9.10
+
+# Data validation and settings management
+pydantic==2.11.7
+pydantic-settings==2.9.1
+python-dotenv==1.1.0
+email-validator==2.2.0
+
+# Authentication, Passwords, and JWT
+passlib[bcrypt]==1.7.4
+python-jose==3.5.0
+python-multipart==0.0.20
+
+# Testing (optional, but needed for your tests)
+pytest
+httpx

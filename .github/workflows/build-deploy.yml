@@ -1,0 +1,103 @@
+name: Build and Deploy Code
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    environment:
+      name: testing
+
+    env:
+      # These environment variables are for your application/tests running in the job context.
+      # When using the `services` block for Postgres, the hostname for the DB
+      # for tools running on the runner (like pytest) is typically the service name itself.
+      DATABASE_HOSTNAME: postgres # <--- Set to the service name 'postgres'
+      DATABASE_PORT: 5432 # This should match your PostgreSQL port
+      DATABASE_PASSWORD: ${{secrets.DATABASE_PASSWORD}}
+      DATABASE_NAME: ${{secrets.DATABASE_NAME}}
+      DATABASE_USERNAME: ${{secrets.DATABASE_USERNAME}}
+      ALGORITHM: ${{secrets.ALGORITHM}}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${{secrets.ACCESS_TOKEN_EXPIRE_MINUTES}}
+
+    # Define the PostgreSQL service that runs alongside your job steps
+    services:
+      postgres:
+        image: postgres:16 # It's good practice to pin a specific version
+        env:
+          POSTGRES_PASSWORD: ${{secrets.DATABASE_PASSWORD}}
+          POSTGRES_DB: ${{secrets.DATABASE_NAME}}_test
+          # If your Postgres user is dynamic, you might need POSTGRES_USER here too:
+          # POSTGRES_USER: ${{secrets.DATABASE_USERNAME}}
+        ports:
+          - 5432:5432 # Maps container's 5432 to runner's 5432 (so localhost:5432 on runner)
+        options: >-
+          --health-cmd pg_isready 
+          --health-interval 10s   
+          --health-timeout 5s     
+          --health-retries 5   
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: pulling git repo
+        uses: actions/checkout@v4 # Use a newer version for better security/features
+
+      - name: Say hi to Sanjeev
+        run: echo "Hello Sanjeev!"
+
+      - name: Install Python version
+        uses: actions/setup-python@v5 # Use a newer version
+        with:
+          python-version: "3.12"
+
+      - name: Update pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install all Python dependencies
+        run: pip install -r requirements.txt
+        working-directory: ML_Development/FastAPI/
+
+      # --- Docker Build and Push Steps ---
+
+      - name: Login to Docker Hub
+        # This step authenticates your workflow with Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_HUB_USERNAME}} 
+          password: ${{secrets.DOCKER_HUB_ACCESS_TOKEN}}
+
+      - name: Set up Docker Buildx
+        # This action sets up Buildx, which is a Moby BuildKit-based builder
+        # providing advanced features like caching, multi-platform builds.
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        # This action builds your Docker image and pushes it to Docker Hub
+        id: docker_build # Assign an ID to this step to reference its outputs later
+        uses: docker/build-push-action@v6
+        with:
+          # context: The path to the build context (where your Dockerfile and code reside)
+          context: ML_Development/FastAPI/
+          # file: The path to your Dockerfile (relative to the context)
+          file: ML_Development/FastAPI/Dockerfile
+          # push: Set to true to push the image to the registry
+          push: true
+          # tags: The image tags to apply (e.g., your_username/repo_name:latest)
+          tags: ${{secrets.DOCKER_HUB_USERNAME}}/fastapi:latest
+          # cache-from: Where to pull existing layers from for faster builds
+          cache-from: type=gha,scope=${{ github.workflow }}
+          # cache-to: Where to push built layers for future runs
+          cache-to: type=gha,scope=${{ github.workflow }},mode=max
+
+      - name: Display Image digest
+        # This step prints the unique content address (SHA256 digest) of the built image
+        run: echo "${{ steps.docker_build.outputs.digest }}"
+
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build]
+
+    steps:
+      - name: deploying stuff
+        run: echo "going to deploy some stuff"
